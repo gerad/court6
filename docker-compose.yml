@@ -1,0 +1,15 @@
+version: "3.8"
+
+services:
+  recorder:
+    build:
+      context: ./recorder
+      dockerfile: Dockerfile
+    volumes:
+      - ./volumes/recorder:/recorder
+    env_file:
+      - ./env/recorder.env
+    restart: unless-stopped
+    init: true
+    # Using host network mode for better performance with video streaming
+    network_mode: host
