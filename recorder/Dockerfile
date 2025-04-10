@@ -1,18 +1,40 @@
-# Use Alpine Linux as our base image
+# Build stage
+FROM golang:1.21-alpine AS builder
+
+WORKDIR /app
+
+# Copy go mod and sum files
+COPY go.mod ./
+
+# Download dependencies
+RUN go mod download
+
+# Copy source code
+COPY . .
+
+# Build the application
+RUN CGO_ENABLED=0 GOOS=linux go build -o main .
+
+# Final stage
 FROM alpine:latest
 
-# Install ffmpeg, bash and its dependencies
-RUN apk add --no-cache ffmpeg bash
+# Install ffmpeg
+RUN apk add --no-cache ffmpeg
 
-RUN mkdir -p /app
-COPY record.sh /app/
+WORKDIR /app
+
+# Copy the binary from builder
+COPY --from=builder /app/main .
 
 # Switch to non-root user
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 USER appuser
 
-# Set working directory
-WORKDIR /app
+# Set default environment variable
+ENV PORT=6001
 
-# Default command to run the script
-CMD ["bash", "/app/record.sh"]
+# Expose the port (default 6001)
+EXPOSE ${PORT}
+
+# Run the binary
+CMD ["./main"]
