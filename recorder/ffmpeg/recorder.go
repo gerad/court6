@@ -11,7 +11,7 @@ const (
 	// DefaultHLS segment duration in seconds
 	DefaultHLSTime = 6
 	// Default number of segments to keep in the playlist
-	DefaultHLSListSize = 10
+	DefaultHLSListSize = 10 * 30
 	// Default playlist filename
 	DefaultPlaylistName = "playlist.m3u8"
 	// Default segment filename pattern
