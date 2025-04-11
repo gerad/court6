@@ -1,0 +1,1 @@
+* 8-19 * * * curl -s -X POST http://backup:6002/backup 

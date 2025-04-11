@@ -28,3 +28,12 @@ services:
       - "6002:6002"
     depends_on:
       - recorder
+
+  cronjob:
+    build:
+      context: ./cronjob
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    init: true
+    depends_on:
+      - backup
