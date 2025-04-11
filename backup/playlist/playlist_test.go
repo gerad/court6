@@ -86,32 +86,6 @@ segment_2.ts
 	}
 }
 
-func TestFindNewSegments(t *testing.T) {
-	source := &Playlist{
-		Segments: []Segment{
-			{Filename: "segment_1.ts"},
-			{Filename: "segment_2.ts"},
-			{Filename: "segment_3.ts"},
-		},
-	}
-
-	target := &Playlist{
-		Segments: []Segment{
-			{Filename: "segment_1.ts"},
-			{Filename: "segment_3.ts"},
-		},
-	}
-
-	newSegments := FindNewSegments(source, target)
-	if len(newSegments) != 1 {
-		t.Fatalf("Expected 1 new segment, got %d", len(newSegments))
-	}
-
-	if newSegments[0].Filename != "segment_2.ts" {
-		t.Errorf("Expected segment_2.ts, got %s", newSegments[0].Filename)
-	}
-}
-
 func TestConcat(t *testing.T) {
 	original := &Playlist{
 		Segments: []Segment{

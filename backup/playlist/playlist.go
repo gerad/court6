@@ -97,23 +97,6 @@ func (p *Playlist) String() string {
 	return sb.String()
 }
 
-// FindNewSegments returns segments that exist in source but not in target
-func FindNewSegments(source, target *Playlist) []Segment {
-	existing := make(map[string]bool)
-	for _, segment := range target.Segments {
-		existing[segment.Filename] = true
-	}
-
-	var newSegments []Segment
-	for _, segment := range source.Segments {
-		if !existing[segment.Filename] {
-			newSegments = append(newSegments, segment)
-		}
-	}
-
-	return newSegments
-}
-
 // Concat returns a new playlist with the additional segment
 func Concat(playlist *Playlist, segment Segment) *Playlist {
 	newPlaylist := *playlist
