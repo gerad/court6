@@ -3,6 +3,7 @@ package playlist
 import (
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestParse(t *testing.T) {
@@ -56,33 +57,34 @@ func TestString(t *testing.T) {
 		MediaSequence:  0,
 		Segments: []Segment{
 			{
+				Duration:        10.0,
 				Filename:        "segment_1.ts",
 				ProgramDateTime: "2024-04-10T23:58:00Z",
-				Duration:        10.0,
+				DateTime:        time.Date(2024, 4, 10, 23, 58, 0, 0, time.UTC),
 			},
 			{
+				Duration:        10.0,
 				Filename:        "segment_2.ts",
 				ProgramDateTime: "2024-04-10T23:58:10Z",
-				Duration:        10.0,
+				DateTime:        time.Date(2024, 4, 10, 23, 58, 10, 0, time.UTC),
 			},
 		},
 	}
 
-	output := playlist.String()
 	expected := `#EXTM3U
 #EXT-X-VERSION:3
 #EXT-X-TARGETDURATION:10
 #EXT-X-MEDIA-SEQUENCE:0
+#EXTINF:10.000000,
 #EXT-X-PROGRAM-DATE-TIME:2024-04-10T23:58:00Z
-#EXTINF:10.0,
 segment_1.ts
+#EXTINF:10.000000,
 #EXT-X-PROGRAM-DATE-TIME:2024-04-10T23:58:10Z
-#EXTINF:10.0,
 segment_2.ts
 `
 
-	if output != expected {
-		t.Errorf("Expected:\n%s\nGot:\n%s", expected, output)
+	if playlist.String() != expected {
+		t.Errorf("Expected:\n%s\nGot:\n%s", expected, playlist.String())
 	}
 }
 
@@ -161,5 +163,48 @@ segment_009.ts`
 
 	if normalizedInput != normalizedOutput {
 		t.Errorf("Roundtrip failed.\nExpected:\n%s\n\nGot:\n%s", normalizedInput, normalizedOutput)
+	}
+}
+
+func TestParseWithTimezoneOffset(t *testing.T) {
+	input := `#EXTM3U
+#EXT-X-VERSION:3
+#EXT-X-TARGETDURATION:61
+#EXT-X-MEDIA-SEQUENCE:0
+#EXTINF:60.800000,
+#EXT-X-PROGRAM-DATE-TIME:2025-04-11T04:53:28.029+0000
+segment_000.ts
+#EXTINF:59.201000,
+#EXT-X-PROGRAM-DATE-TIME:2025-04-11T04:54:28.829+0000
+segment_001.ts
+#EXTINF:60.801000,
+#EXT-X-PROGRAM-DATE-TIME:2025-04-11T04:55:28.030+0000
+segment_002.ts`
+
+	playlist, err := Parse(strings.NewReader(input))
+	if err != nil {
+		t.Fatalf("Parse failed: %v", err)
+	}
+
+	if len(playlist.Segments) != 3 {
+		t.Fatalf("Expected 3 segments, got %d", len(playlist.Segments))
+	}
+
+	expectedTimes := []string{
+		"2025-04-11T04:53:28.029+0000",
+		"2025-04-11T04:54:28.829+0000",
+		"2025-04-11T04:55:28.030+0000",
+	}
+
+	for i, segment := range playlist.Segments {
+		if segment.ProgramDateTime != expectedTimes[i] {
+			t.Errorf("Segment %d: Expected time %s, got %s", i, expectedTimes[i], segment.ProgramDateTime)
+		}
+		if segment.DateTime.IsZero() {
+			t.Errorf("Segment %d: DateTime is zero", i)
+		}
+		if segment.Duration != 60.8 && segment.Duration != 59.201 && segment.Duration != 60.801 {
+			t.Errorf("Segment %d: Unexpected duration %f", i, segment.Duration)
+		}
 	}
 }

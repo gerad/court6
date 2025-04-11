@@ -121,5 +121,12 @@ func (r *FileSystemBackupRepository) ensureBackupDirectory(segmentTime time.Time
 	if err != nil {
 		return err
 	}
-	return os.MkdirAll(path, 0755)
+	fmt.Printf("Ensuring backup directory exists: %s\n", path)
+	err = os.MkdirAll(path, 0755)
+	if err != nil {
+		fmt.Printf("Error creating directory %s: %v\n", path, err)
+		return err
+	}
+	fmt.Printf("Successfully created/verified directory: %s\n", path)
+	return nil
 }

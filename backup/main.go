@@ -30,11 +30,16 @@ func main() {
 
 	// Create dependencies
 	gateway := gateway.NewHTTPPlaylistGateway(recorderURL)
-	repository := repository.NewFileSystemBackupRepository("volumes")
+	repository := repository.NewFileSystemBackupRepository("/backup")
 	backupApp := app.NewBackupApp(gateway, repository)
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("POST /backup", func(w http.ResponseWriter, _ *http.Request) {
+	mux.HandleFunc("/backup", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			sendJSON(w, http.StatusMethodNotAllowed, BackupResponse{Error: "Method not allowed"})
+			return
+		}
+
 		result := backupApp.Backup()
 		if result.Error != nil {
 			sendJSON(w, http.StatusInternalServerError, BackupResponse{Error: result.Error.Error()})

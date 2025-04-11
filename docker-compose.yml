@@ -19,7 +19,7 @@ services:
       context: ./backup
       dockerfile: Dockerfile
     volumes:
-      - ./volumes/backup:/app/volumes/backup
+      - ./volumes/backup:/backup
     env_file:
       - ./env/backup.env
     restart: unless-stopped

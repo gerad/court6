@@ -38,42 +38,88 @@ func Parse(reader io.Reader) (*Playlist, error) {
 	dateTimeRegex := regexp.MustCompile(`#EXT-X-PROGRAM-DATE-TIME:(.+)`)
 	durationRegex := regexp.MustCompile(`#EXTINF:([\d.]+),`)
 
-	var currentDateTime time.Time
-	var currentProgramDateTime string
-	var currentDuration float64
-
+	// Read all lines into memory first
+	var lines []string
 	for scanner.Scan() {
-		line := scanner.Text()
-
-		switch {
-		case strings.HasPrefix(line, "#EXT-X-VERSION:"):
-			fmt.Sscanf(line, "#EXT-X-VERSION:%d", &playlist.Version)
-		case strings.HasPrefix(line, "#EXT-X-TARGETDURATION:"):
-			fmt.Sscanf(line, "#EXT-X-TARGETDURATION:%d", &playlist.TargetDuration)
-		case strings.HasPrefix(line, "#EXT-X-MEDIA-SEQUENCE:"):
-			fmt.Sscanf(line, "#EXT-X-MEDIA-SEQUENCE:%d", &playlist.MediaSequence)
-		case dateTimeRegex.MatchString(line):
-			matches := dateTimeRegex.FindStringSubmatch(line)
-			if len(matches) > 1 {
-				currentDateTime, _ = time.Parse(time.RFC3339, matches[1])
-				currentProgramDateTime = matches[1]
-			}
-		case durationRegex.MatchString(line):
-			fmt.Sscanf(line, "#EXTINF:%f,", &currentDuration)
-		case strings.HasSuffix(line, ".ts"):
-			playlist.Segments = append(playlist.Segments, Segment{
-				Filename:        line,
-				DateTime:        currentDateTime,
-				ProgramDateTime: currentProgramDateTime,
-				Duration:        currentDuration,
-			})
-		}
+		lines = append(lines, scanner.Text())
 	}
 
 	if err := scanner.Err(); err != nil {
 		return nil, fmt.Errorf("error scanning playlist: %w", err)
 	}
 
+	fmt.Printf("Parsing playlist with %d lines\n", len(lines))
+	for i, line := range lines {
+		fmt.Printf("Line %d: %s\n", i, line)
+	}
+
+	// Process the lines
+	for i := 0; i < len(lines); i++ {
+		line := lines[i]
+
+		// Handle playlist headers
+		switch {
+		case strings.HasPrefix(line, "#EXT-X-VERSION:"):
+			fmt.Sscanf(line, "#EXT-X-VERSION:%d", &playlist.Version)
+			fmt.Printf("Found version: %d\n", playlist.Version)
+		case strings.HasPrefix(line, "#EXT-X-TARGETDURATION:"):
+			fmt.Sscanf(line, "#EXT-X-TARGETDURATION:%d", &playlist.TargetDuration)
+			fmt.Printf("Found target duration: %d\n", playlist.TargetDuration)
+		case strings.HasPrefix(line, "#EXT-X-MEDIA-SEQUENCE:"):
+			fmt.Sscanf(line, "#EXT-X-MEDIA-SEQUENCE:%d", &playlist.MediaSequence)
+			fmt.Printf("Found media sequence: %d\n", playlist.MediaSequence)
+		}
+
+		// Look for segment information
+		if strings.HasSuffix(line, ".ts") {
+			fmt.Printf("Found segment: %s\n", line)
+			// This is a segment filename, look for its metadata in previous lines
+			var segment Segment
+			segment.Filename = line
+
+			// Look for duration in previous lines
+			for j := i - 1; j >= 0; j-- {
+				if durationRegex.MatchString(lines[j]) {
+					fmt.Sscanf(lines[j], "#EXTINF:%f,", &segment.Duration)
+					fmt.Printf("Found duration for %s: %f\n", line, segment.Duration)
+					break
+				}
+			}
+
+			// Look for program date time in previous lines
+			for j := i - 1; j >= 0; j-- {
+				if dateTimeRegex.MatchString(lines[j]) {
+					matches := dateTimeRegex.FindStringSubmatch(lines[j])
+					if len(matches) > 1 {
+						var err error
+						// Try parsing with RFC3339 first
+						segment.DateTime, err = time.Parse(time.RFC3339, matches[1])
+						if err != nil {
+							// If that fails, try parsing with a custom format that handles +0000 timezone
+							segment.DateTime, err = time.Parse("2006-01-02T15:04:05.999-0700", matches[1])
+							if err != nil {
+								fmt.Printf("Failed to parse date time %s: %v\n", matches[1], err)
+								continue
+							}
+						}
+						segment.ProgramDateTime = matches[1]
+						fmt.Printf("Found date time for %s: %s\n", line, segment.ProgramDateTime)
+					}
+					break
+				}
+			}
+
+			// Only add the segment if we have all the required information
+			if !segment.DateTime.IsZero() && segment.Duration > 0 {
+				fmt.Printf("Adding segment to playlist: %s\n", line)
+				playlist.Segments = append(playlist.Segments, segment)
+			} else {
+				fmt.Printf("Skipping segment %s: DateTime=%v, Duration=%f\n", line, segment.DateTime, segment.Duration)
+			}
+		}
+	}
+
+	fmt.Printf("Parsed playlist with %d segments\n", len(playlist.Segments))
 	return playlist, nil
 }
 
