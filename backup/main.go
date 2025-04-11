@@ -34,7 +34,7 @@ func main() {
 	backupApp := app.NewBackupApp(gateway, repository)
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("/backup", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("POST /backup", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			sendJSON(w, http.StatusMethodNotAllowed, BackupResponse{Error: "Method not allowed"})
 			return
