@@ -9,9 +9,9 @@ import (
 
 const (
 	// DefaultHLS segment duration in seconds
-	DefaultHLSTime = 6
+	DefaultHLSTime = 60
 	// Default number of segments to keep in the playlist
-	DefaultHLSListSize = 10 * 30
+	DefaultHLSListSize = 60
 	// Default playlist filename
 	DefaultPlaylistName = "playlist.m3u8"
 	// Default segment filename pattern

@@ -13,3 +13,18 @@ services:
     init: true
     ports:
       - "6001:6001"
+
+  backup:
+    build:
+      context: ./backup
+      dockerfile: Dockerfile
+    volumes:
+      - ./volumes/backup:/app/volumes/backup
+    env_file:
+      - ./env/backup.env
+    restart: unless-stopped
+    init: true
+    ports:
+      - "6002:6002"
+    depends_on:
+      - recorder
