@@ -1,33 +1,28 @@
-version: "3.8"
-
 services:
-  recorder:
+  stream:
     build:
-      context: ./recorder
+      context: ./stream
       dockerfile: Dockerfile
     volumes:
-      - ./volumes/recorder:/recorder
+      - ./volumes/stream:/stream
     env_file:
-      - ./env/recorder.env
+      - ./env/stream.env
     restart: unless-stopped
     init: true
-    ports:
-      - "6001:6001"
 
-  backup:
+  archive:
     build:
-      context: ./backup
+      context: ./archive
       dockerfile: Dockerfile
     volumes:
-      - ./volumes/backup:/backup
+      - ./volumes/archive:/archive
+      - ./volumes/stream:/stream:ro
     env_file:
-      - ./env/backup.env
-    restart: unless-stopped
+      - ./env/archive.env
+    restart: "no"
     init: true
-    ports:
-      - "6002:6002"
     depends_on:
-      - recorder
+      - stream
 
   cronjob:
     build:
@@ -36,4 +31,4 @@ services:
     restart: unless-stopped
     init: true
     depends_on:
-      - backup
+      - archive
