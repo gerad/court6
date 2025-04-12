@@ -23,12 +23,3 @@ services:
     init: true
     depends_on:
       - stream
-
-  cronjob:
-    build:
-      context: ./cronjob
-      dockerfile: Dockerfile
-    restart: unless-stopped
-    init: true
-    depends_on:
-      - archive
