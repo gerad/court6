@@ -19,7 +19,45 @@ services:
       - ./volumes/stream:/stream:ro
     env_file:
       - ./env/archive.env
-    restart: "no"
     init: true
+    restart: unless-stopped
     depends_on:
       - stream
+
+  fileserver:
+    build:
+      context: ./fileserver
+      dockerfile: Dockerfile
+    volumes:
+      - ./volumes/archive:/archive:ro
+      - ./volumes/stream:/stream:ro
+    env_file:
+      - ./env/fileserver.env
+    init: true
+    restart: unless-stopped
+    depends_on:
+      - stream
+      - archive
+    ports:
+      - 6001:6001
+
+  caddy:
+    # Only include Caddy in production
+    # run with `docker compose up --profile production`
+    profiles:
+      - production
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - fileserver
+
+volumes:
+  caddy_data:
+  caddy_config:

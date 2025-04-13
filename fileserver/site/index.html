@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>HLS Player</title>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        background: #fff;
+      }
+      video {
+        max-width: 100%;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      }
+    </style>
+  </head>
+  <body>
+    <video id="video" controls></video>
+
+    <script>
+      const video = document.getElementById("video");
+      const videoSrc = "/stream/playlist.m3u8";
+
+      if (Hls.isSupported()) {
+        const hls = new Hls();
+        hls.loadSource(videoSrc);
+        hls.attachMedia(video);
+        hls.on(Hls.Events.MANIFEST_PARSED, function () {
+          video.play();
+        });
+      }
+      // For browsers that natively support HLS
+      else if (video.canPlayType("application/vnd.apple.mpegurl")) {
+        video.src = videoSrc;
+        video.addEventListener("loadedmetadata", function () {
+          video.play();
+        });
+      }
+
+      // Switch the video source to the archive at a given time
+      function switchTime(hoursAgo) {
+        const date = new Date(Date.now() - hoursAgo * 60 * 60 * 1000);
+
+        const year = date.getUTCFullYear();
+        const month = date.getUTCMonth();
+        const day = date.getUTCDate();
+        const hour = date.getUTCHours();
+
+        const archiveSrc = `/archive/${year}/${month}/${day}/${hour}/playlist.m3u8`;
+        video.src = archiveSrc;
+      }
+    </script>
+  </body>
+</html>

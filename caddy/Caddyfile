@@ -1,0 +1,3 @@
+court6.net {
+    reverse_proxy fileserver:6001
+}
