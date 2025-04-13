@@ -56,11 +56,14 @@ func (app *ArchiveApp) Archive() ArchiveResult {
 	}
 
 	backedUp := 0
+	var archiveError error
+
 	for _, segment := range recorderPlaylist.Segments {
 		// Get archive playlist for this segment's time
 		archivePlaylist, err := app.archiveRepo.ReadPlaylist(segment.DateTime)
 		if err != nil {
 			fmt.Printf("Failed to read archive playlist for segment %s: %v\n", segment.Filename, err)
+			archiveError = fmt.Errorf("failed to read archive playlist: %w", err)
 			continue
 		}
 
@@ -99,14 +102,16 @@ func (app *ArchiveApp) Archive() ArchiveResult {
 		newFilename := fmt.Sprintf("segment_%03d.ts", len(archivePlaylist.Segments))
 		if err := app.archiveRepo.WriteSegment(segment.DateTime, newFilename, content); err != nil {
 			fmt.Printf("Failed to write segment %s: %v\n", newFilename, err)
+			archiveError = fmt.Errorf("failed to write segment: %w", err)
 			continue
 		}
 
 		// Create new segment with updated filename
 		newSegment := playlist.Segment{
-			Filename: newFilename,
-			Duration: segment.Duration,
-			DateTime: segment.DateTime,
+			Filename:        newFilename,
+			Duration:        segment.Duration,
+			DateTime:        segment.DateTime,
+			ProgramDateTime: segment.ProgramDateTime, // Preserve the ProgramDateTime tag
 		}
 
 		// Add segment to archive playlist
@@ -115,6 +120,7 @@ func (app *ArchiveApp) Archive() ArchiveResult {
 		// Write updated playlist
 		if err := app.archiveRepo.WritePlaylist(segment.DateTime, archivePlaylist); err != nil {
 			fmt.Printf("Failed to write archive playlist for segment %s: %v\n", newFilename, err)
+			archiveError = fmt.Errorf("failed to write archive playlist: %w", err)
 			continue
 		}
 
@@ -122,5 +128,8 @@ func (app *ArchiveApp) Archive() ArchiveResult {
 	}
 
 	fmt.Printf("Archive complete. Archived %d segments.\n", backedUp)
-	return ArchiveResult{ArchivedSegments: backedUp}
+	return ArchiveResult{
+		ArchivedSegments: backedUp,
+		Error:            archiveError,
+	}
 }
