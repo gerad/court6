@@ -42,10 +42,6 @@ services:
       - 6001:6001
 
   caddy:
-    # Only include Caddy in production
-    # run with `docker compose up --profile production`
-    profiles:
-      - production
     image: caddy:2
     restart: unless-stopped
     ports:
@@ -57,6 +53,9 @@ services:
       - caddy_config:/config
     depends_on:
       - fileserver
+    # Only start Caddy if CADDY_ENABLED is set to "true"
+    # run with `CADDY_ENABLED=true docker compose up`
+    profiles: ${CADDY_ENABLED:-false}
 
 volumes:
   caddy_data:
