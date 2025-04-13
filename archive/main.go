@@ -3,17 +3,28 @@ package main
 import (
 	"fmt"
 	"log"
+	"os"
 	"time"
 
 	"archive/app"
-	"archive/gateway"
-	"archive/repository"
+	"archive/archiverepo"
+	"archive/streamrepo"
 )
 
 func main() {
-	gateway := gateway.NewFileSystemPlaylistGateway("/stream")
-	repository := repository.NewFileSystemArchiveRepository("/archive")
-	archiveApp := app.NewArchiveApp(gateway, repository)
+	inputDir, found := os.LookupEnv("INPUT_DIR")
+	if !found {
+		log.Fatalln("Error: INPUT_DIR environment variable is not set")
+	}
+	streamRepo := streamrepo.New(inputDir)
+
+	outputDir, found := os.LookupEnv("OUTPUT_DIR")
+	if !found {
+		log.Fatalln("Error: OUTPUT_DIR environment variable is not set")
+	}
+	archiveRepo := archiverepo.New(outputDir)
+
+	archiveApp := app.NewArchiveApp(streamRepo, archiveRepo)
 
 	// Create a ticker that runs every minute
 	ticker := time.NewTicker(1 * time.Minute)

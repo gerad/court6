@@ -2,6 +2,10 @@
 
 # Script to record m3u8 video stream using ffmpeg
 
+
+PLAYLIST_NAME="playlist.m3u8"
+SEGMENT_TEMPLATE="segment_%03d.ts"
+
 # Check if required environment variables are set
 if [ -z "$STREAM_URL" ]; then
     echo "Error: STREAM_URL environment variable is not set"
@@ -10,11 +14,6 @@ fi
 
 if [ -z "$OUTPUT_DIR" ]; then
     echo "Error: OUTPUT_DIR environment variable is not set"
-    exit 1
-fi
-
-if [ -z "$PLAYLIST_NAME" ]; then
-    echo "Error: PLAYLIST_NAME environment variable is not set"
     exit 1
 fi
 
@@ -42,5 +41,5 @@ exec ffmpeg -y \
     -hls_time 10 \
     -hls_list_size 360 \
     -hls_flags delete_segments+program_date_time \
-    -hls_segment_filename "$OUTPUT_DIR/segment_%03d.ts" \
+    -hls_segment_filename "$OUTPUT_DIR/$SEGMENT_TEMPLATE" \
     "$OUTPUT_DIR/$PLAYLIST_NAME"

@@ -2,23 +2,43 @@ package app
 
 import (
 	"fmt"
+	"io"
+	"time"
 
-	"archive/gateway"
 	"archive/playlist"
-	"archive/repository"
 )
+
+// ArchiveRepository defines the interface for archive storage operations
+type ArchiveRepository interface {
+	// ReadPlaylist reads a playlist for a specific time
+	ReadPlaylist(time time.Time) (*playlist.Playlist, error)
+
+	// WritePlaylist writes a playlist for a specific time
+	WritePlaylist(time time.Time, playlist *playlist.Playlist) error
+
+	// WriteSegment writes a segment file for a specific time
+	WriteSegment(time time.Time, filename string, content io.ReadCloser) error
+}
+
+// StreamRepository defines the interface for reading a playlist and segments
+type StreamRepository interface {
+	// GetPlaylist reads the playlist for the stream
+	GetPlaylist() (*playlist.Playlist, error)
+	// GetSegment reads a segment from the stream
+	GetSegment(filename string) (io.ReadCloser, error)
+}
 
 // ArchiveApp coordinates the archive process
 type ArchiveApp struct {
-	gateway    gateway.PlaylistGateway
-	repository repository.ArchiveRepository
+	streamRepo  StreamRepository
+	archiveRepo ArchiveRepository
 }
 
 // NewArchiveApp creates a new ArchiveApp
-func NewArchiveApp(gateway gateway.PlaylistGateway, repository repository.ArchiveRepository) *ArchiveApp {
+func NewArchiveApp(streamRepo StreamRepository, archiveRepo ArchiveRepository) *ArchiveApp {
 	return &ArchiveApp{
-		gateway:    gateway,
-		repository: repository,
+		streamRepo:  streamRepo,
+		archiveRepo: archiveRepo,
 	}
 }
 
@@ -30,7 +50,7 @@ type ArchiveResult struct {
 
 // Archive performs the archive operation
 func (app *ArchiveApp) Archive() ArchiveResult {
-	recorderPlaylist, err := app.gateway.GetPlaylist()
+	recorderPlaylist, err := app.streamRepo.GetPlaylist()
 	if err != nil {
 		return ArchiveResult{Error: fmt.Errorf("failed to get recorder playlist: %w", err)}
 	}
@@ -38,7 +58,7 @@ func (app *ArchiveApp) Archive() ArchiveResult {
 	backedUp := 0
 	for _, segment := range recorderPlaylist.Segments {
 		// Get archive playlist for this segment's time
-		archivePlaylist, err := app.repository.ReadPlaylist(segment.DateTime)
+		archivePlaylist, err := app.archiveRepo.ReadPlaylist(segment.DateTime)
 		if err != nil {
 			fmt.Printf("Failed to read archive playlist for segment %s: %v\n", segment.Filename, err)
 			continue
@@ -69,7 +89,7 @@ func (app *ArchiveApp) Archive() ArchiveResult {
 		}
 
 		// Get segment content from recorder
-		content, err := app.gateway.GetSegment(segment.Filename)
+		content, err := app.streamRepo.GetSegment(segment.Filename)
 		if err != nil {
 			fmt.Printf("Failed to get segment %s: %v\n", segment.Filename, err)
 			continue
@@ -77,7 +97,7 @@ func (app *ArchiveApp) Archive() ArchiveResult {
 
 		// Write segment to archive
 		newFilename := fmt.Sprintf("segment_%03d.ts", len(archivePlaylist.Segments))
-		if err := app.repository.WriteSegment(segment.DateTime, newFilename, content); err != nil {
+		if err := app.archiveRepo.WriteSegment(segment.DateTime, newFilename, content); err != nil {
 			fmt.Printf("Failed to write segment %s: %v\n", newFilename, err)
 			continue
 		}
@@ -93,7 +113,7 @@ func (app *ArchiveApp) Archive() ArchiveResult {
 		archivePlaylist = playlist.Concat(archivePlaylist, newSegment)
 
 		// Write updated playlist
-		if err := app.repository.WritePlaylist(segment.DateTime, archivePlaylist); err != nil {
+		if err := app.archiveRepo.WritePlaylist(segment.DateTime, archivePlaylist); err != nil {
 			fmt.Printf("Failed to write archive playlist for segment %s: %v\n", newFilename, err)
 			continue
 		}

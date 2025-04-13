@@ -10,39 +10,39 @@ import (
 	"time"
 )
 
-type mockGateway struct {
+type mockStreamRepo struct {
 	playlist *playlist.Playlist
 	segment  []byte
 	err      error
 }
 
-func (m *mockGateway) GetPlaylist() (*playlist.Playlist, error) {
+func (m *mockStreamRepo) GetPlaylist() (*playlist.Playlist, error) {
 	if m.err != nil {
 		return nil, m.err
 	}
 	return m.playlist, nil
 }
 
-func (m *mockGateway) GetSegment(filename string) (io.ReadCloser, error) {
+func (m *mockStreamRepo) GetSegment(filename string) (io.ReadCloser, error) {
 	if m.err != nil {
 		return nil, m.err
 	}
 	return io.NopCloser(bytes.NewReader(m.segment)), nil
 }
 
-type mockRepository struct {
+type mockArchiveRepo struct {
 	playlist *playlist.Playlist
 	err      error
 }
 
-func (m *mockRepository) ReadPlaylist(time time.Time) (*playlist.Playlist, error) {
+func (m *mockArchiveRepo) ReadPlaylist(time time.Time) (*playlist.Playlist, error) {
 	if m.err != nil {
 		return nil, m.err
 	}
 	return m.playlist, nil
 }
 
-func (m *mockRepository) WritePlaylist(time time.Time, playlist *playlist.Playlist) error {
+func (m *mockArchiveRepo) WritePlaylist(time time.Time, playlist *playlist.Playlist) error {
 	if m.err != nil {
 		return m.err
 	}
@@ -50,7 +50,7 @@ func (m *mockRepository) WritePlaylist(time time.Time, playlist *playlist.Playli
 	return nil
 }
 
-func (m *mockRepository) WriteSegment(time time.Time, filename string, content io.ReadCloser) error {
+func (m *mockArchiveRepo) WriteSegment(time time.Time, filename string, content io.ReadCloser) error {
 	if m.err != nil {
 		return m.err
 	}
@@ -60,13 +60,13 @@ func (m *mockRepository) WriteSegment(time time.Time, filename string, content i
 func TestArchiveApp_Archive(t *testing.T) {
 	tests := []struct {
 		name           string
-		gateway        *mockGateway
-		repository     *mockRepository
+		streamRepo     *mockStreamRepo
+		archiveRepo    *mockArchiveRepo
 		expectedResult app.ArchiveResult
 	}{
 		{
 			name: "successful archive",
-			gateway: &mockGateway{
+			streamRepo: &mockStreamRepo{
 				playlist: &playlist.Playlist{
 					Version:        3,
 					TargetDuration: 10,
@@ -82,24 +82,24 @@ func TestArchiveApp_Archive(t *testing.T) {
 				},
 				segment: []byte("test segment"),
 			},
-			repository: &mockRepository{},
+			archiveRepo: &mockArchiveRepo{},
 			expectedResult: app.ArchiveResult{
 				ArchivedSegments: 1,
 			},
 		},
 		{
 			name: "gateway error",
-			gateway: &mockGateway{
+			streamRepo: &mockStreamRepo{
 				err: errors.New("gateway error"),
 			},
-			repository: &mockRepository{},
+			archiveRepo: &mockArchiveRepo{},
 			expectedResult: app.ArchiveResult{
 				Error: errors.New("failed to get recorder playlist: gateway error"),
 			},
 		},
 		{
 			name: "repository error",
-			gateway: &mockGateway{
+			streamRepo: &mockStreamRepo{
 				playlist: &playlist.Playlist{
 					Version:        3,
 					TargetDuration: 10,
@@ -115,7 +115,7 @@ func TestArchiveApp_Archive(t *testing.T) {
 				},
 				segment: []byte("test segment"),
 			},
-			repository: &mockRepository{
+			archiveRepo: &mockArchiveRepo{
 				err: errors.New("repository error"),
 			},
 			expectedResult: app.ArchiveResult{
@@ -126,7 +126,7 @@ func TestArchiveApp_Archive(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			app := app.NewArchiveApp(tt.gateway, tt.repository)
+			app := app.NewArchiveApp(tt.streamRepo, tt.archiveRepo)
 			result := app.Archive()
 
 			if result.ArchivedSegments != tt.expectedResult.ArchivedSegments {

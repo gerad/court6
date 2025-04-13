@@ -1,4 +1,4 @@
-package repository
+package archiverepo
 
 import (
 	"archive/playlist"
@@ -9,32 +9,20 @@ import (
 	"time"
 )
 
-// ArchiveRepository defines the interface for archive storage operations
-type ArchiveRepository interface {
-	// ReadPlaylist reads a playlist for a specific time
-	ReadPlaylist(time time.Time) (*playlist.Playlist, error)
-
-	// WritePlaylist writes a playlist for a specific time
-	WritePlaylist(time time.Time, playlist *playlist.Playlist) error
-
-	// WriteSegment writes a segment file for a specific time
-	WriteSegment(time time.Time, filename string, content io.ReadCloser) error
-}
-
-// FileSystemArchiveRepository implements ArchiveRepository using the filesystem
-type FileSystemArchiveRepository struct {
+// ArchiveRepository stores video playlists and segments on the filesystem
+type ArchiveRepository struct {
 	basePath string
 }
 
-// NewFileSystemArchiveRepository creates a new FileSystemArchiveRepository
-func NewFileSystemArchiveRepository(basePath string) *FileSystemArchiveRepository {
-	return &FileSystemArchiveRepository{
+// NewArchiveRepository creates a new ArchiveRepository
+func New(basePath string) *ArchiveRepository {
+	return &ArchiveRepository{
 		basePath: basePath,
 	}
 }
 
 // getBackupPath returns the path for a specific time
-func (r *FileSystemArchiveRepository) getBackupPath(segmentTime time.Time) (string, error) {
+func (r *ArchiveRepository) getBackupPath(segmentTime time.Time) (string, error) {
 	path := filepath.Join(r.basePath,
 		fmt.Sprintf("%d", segmentTime.Year()),
 		fmt.Sprintf("%02d", segmentTime.Month()),
@@ -44,7 +32,7 @@ func (r *FileSystemArchiveRepository) getBackupPath(segmentTime time.Time) (stri
 }
 
 // ReadPlaylist reads the archive playlist from the filesystem for a specific time
-func (r *FileSystemArchiveRepository) ReadPlaylist(segmentTime time.Time) (*playlist.Playlist, error) {
+func (r *ArchiveRepository) ReadPlaylist(segmentTime time.Time) (*playlist.Playlist, error) {
 	// Ensure backup directory exists before reading
 	if err := r.ensureBackupDirectory(segmentTime); err != nil {
 		return nil, err
@@ -70,7 +58,7 @@ func (r *FileSystemArchiveRepository) ReadPlaylist(segmentTime time.Time) (*play
 }
 
 // WritePlaylist writes the playlist to the filesystem for a specific time
-func (r *FileSystemArchiveRepository) WritePlaylist(segmentTime time.Time, playlist *playlist.Playlist) error {
+func (r *ArchiveRepository) WritePlaylist(segmentTime time.Time, playlist *playlist.Playlist) error {
 	// Ensure backup directory exists before writing
 	if err := r.ensureBackupDirectory(segmentTime); err != nil {
 		return err
@@ -93,7 +81,7 @@ func (r *FileSystemArchiveRepository) WritePlaylist(segmentTime time.Time, playl
 }
 
 // WriteSegment writes a segment to the filesystem for a specific time
-func (r *FileSystemArchiveRepository) WriteSegment(segmentTime time.Time, filename string, content io.ReadCloser) error {
+func (r *ArchiveRepository) WriteSegment(segmentTime time.Time, filename string, content io.ReadCloser) error {
 	// Ensure backup directory exists before writing
 	if err := r.ensureBackupDirectory(segmentTime); err != nil {
 		return err
@@ -117,7 +105,7 @@ func (r *FileSystemArchiveRepository) WriteSegment(segmentTime time.Time, filena
 
 // ensureBackupDirectory creates the backup directory if it doesn't exist
 // This is now a private method used internally by the repository
-func (r *FileSystemArchiveRepository) ensureBackupDirectory(segmentTime time.Time) error {
+func (r *ArchiveRepository) ensureBackupDirectory(segmentTime time.Time) error {
 	path, err := r.getBackupPath(segmentTime)
 	if err != nil {
 		return err
