@@ -24,15 +24,15 @@ services:
     depends_on:
       - stream
 
-  fileserver:
+  videoserver:
     build:
-      context: ./fileserver
+      context: ./videoserver
       dockerfile: Dockerfile
     volumes:
       - ./volumes/archive:/archive:ro
       - ./volumes/stream:/stream:ro
     env_file:
-      - ./env/fileserver.env
+      - ./env/videoserver.env
     init: true
     restart: unless-stopped
     depends_on:
@@ -56,7 +56,7 @@ services:
       - caddy_data:/data
       - caddy_config:/config
     depends_on:
-      - fileserver
+      - videoserver
 
 volumes:
   caddy_data:
