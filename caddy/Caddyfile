@@ -1,3 +1,3 @@
 court6.net {
-    reverse_proxy fileserver:6001
+    reverse_proxy videoserver:6001
 }

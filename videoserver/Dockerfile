@@ -13,7 +13,7 @@ RUN go mod download
 COPY . .
 
 # Build the application
-RUN CGO_ENABLED=0 GOOS=linux go build -o fileserver .
+RUN CGO_ENABLED=0 GOOS=linux go build -o videoserver .
 
 # Final stage
 FROM alpine:latest
@@ -21,7 +21,7 @@ FROM alpine:latest
 WORKDIR /app
 
 # Copy the binary from builder
-COPY --from=builder /app/fileserver .
+COPY --from=builder /app/videoserver .
 
 COPY ./site /site
 
@@ -32,4 +32,4 @@ ENV PORT=6001
 EXPOSE ${PORT}
 
 # Run the binary
-CMD ["./fileserver"]
+CMD ["./videoserver"]

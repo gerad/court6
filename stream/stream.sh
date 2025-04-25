@@ -2,7 +2,6 @@
 
 # Script to record m3u8 video stream using ffmpeg
 
-
 PLAYLIST_NAME="playlist.m3u8"
 SEGMENT_TEMPLATE="segment_%03d.ts"
 
